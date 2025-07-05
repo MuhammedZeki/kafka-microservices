@@ -1,7 +1,7 @@
 const express = require("express");
-const app = express();
 const cors = require("cors");
 const { connectToDb } = require("./db/db");
+const app = express();
 
 app.use(
   cors({
@@ -13,5 +13,5 @@ app.use(express.json());
 
 app.listen(5000, () => {
   connectToDb();
-  console.log("Order service is running on port 5000");
+  console.log("Notification service is running on port 5000");
 });
