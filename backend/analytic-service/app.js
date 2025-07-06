@@ -12,7 +12,7 @@ const run = async () => {
     await consumer.connect();
     await consumer.subscribe({
       topics: ["payment-successful", "order-successful", "email-successful"],
-      fromBeginning: true,
+      fromBeginning: false,
     });
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
@@ -20,7 +20,10 @@ const run = async () => {
           case "payment-successful":
             {
               const value = message.value.toString();
-              const { userId, cart } = JSON.parse(value);
+              console.log(" RAW VALUE:", value);
+              const parsed = JSON.parse(value);
+              console.log(" PARSED VALUE:", parsed);
+              const { userId, cart } = parsed;
               const total = cart
                 .reduce((acc, item) => acc + item.price, 0)
                 .toFixed(2);

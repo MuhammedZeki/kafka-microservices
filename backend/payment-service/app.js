@@ -1,12 +1,12 @@
 const express = require("express");
 const cors = require("cors");
+const { Kafka } = require("kafkajs");
 const { connectToDb } = require("./db/db");
 const app = express();
-const { Kafka } = require("kafkajs");
 
 app.use(
   cors({
-    origin: "http://localhost:3002/",
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
@@ -31,11 +31,9 @@ const connectToKafka = async () => {
 app.post("/payment", async (req, res) => {
   try {
     const { cart } = req.body;
-    if (!cart || !cart.card) {
-      return res.status(400).json({ error: "Card information is required" });
-    }
-    const userId = "123456789";
 
+    const userId = "123456789";
+    console.log(cart);
     await producer.send({
       topic: "payment-successful",
       messages: [{ value: JSON.stringify({ userId, cart }) }],
