@@ -17,11 +17,9 @@ const kafka = new Kafka({
   clientId: "notification-service",
   brokers: ["localhost:9094"],
 });
-const producer = kafka.producer();
-const consumer = kafka.consumer({ groupId: "notifiction-group" });
+const consumer = kafka.consumer({ groupId: "notification-group" });
 const connectToKafka = async () => {
   try {
-    await producer.connect();
     await consumer.connect();
   } catch (error) {
     console.log("Error connection to Kafka", error);
@@ -31,31 +29,30 @@ const connectToKafka = async () => {
 const run = async () => {
   try {
     await consumer.subscribe({
-      topic: "order-successful",
+      topic: "payment-successful",
       fromBeginning: false,
     });
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         const value = message.value.toString();
-        const { userId } = JSON.parse(value);
+        const { userId, orderId } = JSON.parse(value);
 
-        const emailId = uuidv4();
         console.log(
-          `Email consumer: User ${userId} placed an email with ID ${emailId}`
+          `Notification service: Payment successful for user ${userId}, order ${orderId}`
         );
-        await producer.send({
-          topic: "email-successful",
-          messages: [{ value: JSON.stringify({ userId, emailId }) }],
-        });
       },
     });
   } catch (error) {
     console.log("Error in kafka consumer", error);
   }
 };
-run();
-app.listen(5000, () => {
-  connectToDb();
-  connectToKafka();
-  console.log("Notification service is running on port 5000");
+const start = async () => {
+  await connectToDb();
+  await connectToKafka();
+  await run();
+};
+
+app.listen(5002, () => {
+  start();
+  console.log("Notification service is running on port 5002");
 });

@@ -22,51 +22,71 @@ const kafka = new Kafka({
 const consumer = kafka.consumer({ groupId: "order-group" });
 const producer = kafka.producer();
 
+const connectToKafka = async () => {
+  try {
+    await producer.connect();
+    await consumer.connect();
+  } catch (error) {
+    console.log("Error connecting to Kafka:", error);
+  }
+};
+
+app.post("/order", async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    const orderId = uuidv4();
+    console.log(
+      `Order service: User ${userId} placed an order with ID ${orderId}`
+    );
+    const order = new Order({
+      userId,
+      orderId,
+      amount,
+      status: "created",
+    });
+    await order.save();
+    console.log("Order created successfully:", order);
+    await producer.send({
+      topic: "order-created",
+      messages: [{ value: JSON.stringify({ userId, orderId, amount }) }],
+    });
+    res.status(201).json({ message: "Order created successfully", orderId });
+  } catch (error) {
+    console.log("Error in order route:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 const run = async () => {
   try {
-    await consumer.connect();
-    await producer.connect();
     await consumer.subscribe({
       topic: "payment-successful",
       fromBeginning: false,
     });
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ message, partition, topic }) => {
         const value = message.value.toString();
-        const { userId } = JSON.parse(value);
+        const { orderId } = JSON.parse(value);
 
-        const orderId = uuidv4();
+        const existing = await Order.findOne({ orderId });
+        if (!existing) return console.log("Order not found:", orderId);
+        existing.status = "paid";
+        await existing.save();
         console.log(
-          `Order consumer: User ${userId} placed an order with ID ${orderId}`
+          `Order consumer: Order ${orderId} has been paid successfully`
         );
-        try {
-          const existing = await Order.findOne({ orderId });
-          if (!existing) {
-            const order = new Order({ userId, orderId, status: "paid" });
-            await order.save();
-            console.log("Success to Created");
-          } else {
-            console.log("OrderId is already existing!");
-          }
-        } catch (error) {
-          console.log("Error while saving order", error);
-        }
-        await producer.send({
-          topic: "order-created",
-          messages: [{ value: JSON.stringify({ userId, orderId }) }],
-        });
-        await producer.send({
-          topic: "order-successful",
-          messages: [{ value: JSON.stringify({ userId, orderId }) }],
-        });
       },
     });
   } catch (error) {
     console.log("Error in Kafka consumer:", error);
   }
 };
-run();
+const start = async () => {
+  await connectToDb();
+  await connectToKafka();
+  await run();
+};
 app.listen(5000, () => {
-  connectToDb();
+  start();
   console.log("Order service is running on port 5000");
 });

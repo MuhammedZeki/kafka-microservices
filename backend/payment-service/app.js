@@ -30,34 +30,33 @@ const connectToKafka = async () => {
   }
 };
 
-app.post("/payment", async (req, res) => {
+const run = async () => {
   try {
-    const { cart } = req.body;
-
-    const userId = uuidv4();
-
-    await consumer.subscribe({ topic: "order-created", fromBeginning: false });
-
+    await consumer.subscribe({
+      topic: "order-created",
+      fromBeginning: false,
+    });
     await consumer.run({
       eachMessage: async ({ message, partition, topic }) => {
         const value = message.value.toString();
-        const { orderId } = JSON.parse(value);
-
+        const { orderId, userId } = JSON.parse(value);
+        console.log(
+          `Payment consumer: User ${userId} placed an order with ID ${orderId}`
+        );
         await producer.send({
           topic: "payment-successful",
-          messages: [{ value: JSON.stringify({ userId, cart, orderId }) }],
+          messages: [{ value: JSON.stringify({ orderId, userId }) }],
         });
       },
     });
-    run();
   } catch (error) {
-    console.log("Error in payment route:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.log("Error in kafka consumer", error);
   }
-});
+};
 
-app.listen(5000, () => {
+app.listen(5001, () => {
   connectToDb();
   connectToKafka();
-  console.log("Payment service is running on port 5000");
+  run();
+  console.log("Payment service is running on port 5001");
 });
