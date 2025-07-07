@@ -3,6 +3,8 @@ const cors = require("cors");
 const { Kafka } = require("kafkajs");
 const { connectToDb } = require("./db/db");
 const app = express();
+const { v4: uuidv4 } = require("uuid");
+
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -37,7 +39,7 @@ const run = async () => {
         const value = message.value.toString();
         const { userId } = JSON.parse(value);
 
-        const emailId = Math.floor(Math.random() * 999999 + 1);
+        const emailId = uuidv4();
         console.log(
           `Email consumer: User ${userId} placed an email with ID ${emailId}`
         );

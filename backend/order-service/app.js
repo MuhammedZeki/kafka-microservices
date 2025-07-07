@@ -3,6 +3,8 @@ const cors = require("cors");
 const { Kafka } = require("kafkajs");
 const app = express();
 const { connectToDb } = require("./db/db");
+const Order = require("./model/order.model");
+const { v4: uuidv4 } = require("uuid");
 
 app.use(
   cors({
@@ -33,10 +35,26 @@ const run = async () => {
         const value = message.value.toString();
         const { userId } = JSON.parse(value);
 
-        const orderId = Math.floor(Math.random() * 99999999);
+        const orderId = uuidv4();
         console.log(
           `Order consumer: User ${userId} placed an order with ID ${orderId}`
         );
+        try {
+          const existing = await Order.findOne({ orderId });
+          if (!existing) {
+            const order = new Order({ userId, orderId, status: "paid" });
+            await order.save();
+            console.log("Success to Created");
+          } else {
+            console.log("OrderId is already existing!");
+          }
+        } catch (error) {
+          console.log("Error while saving order", error);
+        }
+        await producer.send({
+          topic: "order-created",
+          messages: [{ value: JSON.stringify({ userId, orderId }) }],
+        });
         await producer.send({
           topic: "order-successful",
           messages: [{ value: JSON.stringify({ userId, orderId }) }],

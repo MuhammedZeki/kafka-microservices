@@ -11,7 +11,12 @@ const run = async () => {
   try {
     await consumer.connect();
     await consumer.subscribe({
-      topics: ["payment-successful", "order-successful", "email-successful"],
+      topics: [
+        "payment-successful",
+        "order-successful",
+        "order-created",
+        "email-successful",
+      ],
       fromBeginning: false,
     });
     await consumer.run({
@@ -20,15 +25,12 @@ const run = async () => {
           case "payment-successful":
             {
               const value = message.value.toString();
-              console.log(" RAW VALUE:", value);
-              const parsed = JSON.parse(value);
-              console.log(" PARSED VALUE:", parsed);
-              const { userId, cart } = parsed;
+              const { userId, cart } = JSON.parse(value);
               const total = cart
                 .reduce((acc, item) => acc + item.price, 0)
                 .toFixed(2);
               console.log(
-                `Analytic consumer : User ${userId} made a payment of $${total}`
+                `Analytic consumer-payment : User ${userId} made a payment of $${total}`
               );
             }
             break;
@@ -37,7 +39,16 @@ const run = async () => {
               const value = message.value.toString();
               const { userId, orderId } = JSON.parse(value);
               console.log(
-                `Analytic consumer : User ${userId} placed an order with ID ${orderId}`
+                `Analytic consumer-order : User ${userId} placed an order with ID ${orderId}`
+              );
+            }
+            break;
+          case "order-created":
+            {
+              const value = message.value.toString();
+              const { userId, orderId } = JSON.parse(value);
+              console.log(
+                `Analytic consumer-order-created : User ${userId} , order with Id ${orderId}`
               );
             }
             break;
@@ -46,7 +57,7 @@ const run = async () => {
               const value = message.value.toString();
               const { userId, emailId } = JSON.parse(value);
               console.log(
-                `Analytic consumer : User ${userId} received an email at ${emailId}`
+                `Analytic consumer-email : User ${userId} received an email at ${emailId}`
               );
             }
             break;
