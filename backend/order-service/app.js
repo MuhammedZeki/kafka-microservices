@@ -15,12 +15,12 @@ app.use(
 app.use(express.json());
 
 const kafka = new Kafka({
-  clientId: "order-service",
-  brokers: ["localhost:9094"],
+  clientId: "notification-service",
+  brokers: ["kafka:9092"], // burada localhost değil kafka servisi
 });
 
-const consumer = kafka.consumer({ groupId: "order-group" });
 const producer = kafka.producer();
+const consumer = kafka.consumer({ groupId: "order-group" });
 
 const connectToKafka = async () => {
   try {
@@ -28,6 +28,7 @@ const connectToKafka = async () => {
     await consumer.connect();
   } catch (error) {
     console.log("Error connecting to Kafka:", error);
+    process.exit(1);
   }
 };
 
@@ -85,8 +86,8 @@ const start = async () => {
   await connectToDb();
   await connectToKafka();
   await run();
+  app.listen(5000, () => {
+    console.log("Order service is running on port 5000");
+  });
 };
-app.listen(5000, () => {
-  start();
-  console.log("Order service is running on port 5000");
-});
+start();

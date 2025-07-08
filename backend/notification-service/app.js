@@ -15,7 +15,7 @@ app.use(express.json());
 
 const kafka = new Kafka({
   clientId: "notification-service",
-  brokers: ["localhost:9094"],
+  brokers: ["kafka:9092"], // burada localhost değil kafka servisi
 });
 const consumer = kafka.consumer({ groupId: "notification-group" });
 const connectToKafka = async () => {

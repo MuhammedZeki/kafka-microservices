@@ -1,8 +1,8 @@
 const { Kafka } = require("kafkajs");
 
 const kafka = new Kafka({
-  clientId: "analytic-service",
-  brokers: ["localhost:9094"],
+  clientId: "notification-service",
+  brokers: ["kafka:9092"], // burada localhost değil kafka servisi
 });
 
 const consumer = kafka.consumer({ groupId: "analytic-group" });
